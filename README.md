@@ -66,17 +66,18 @@ SQL Server Database
 1. Clone the repository
 ```bash
 git clone https://github.com/Anuradhakathe/Cloud-Monitoring-Auto-Healing-System.git
-
+```
 2.Open the solution in Visual Studio
-
 3.Update the SQL Server connection string in appsettings.json
-
 4.Apply database migrations
+```bash
   Update-Database
-
+```
 5.Run the application
+```bash
   dotnet run
-
+```
 6.Open in browser:
 Swagger UI: https://localhost:7216/swagger
 Dashboard: https://localhost:7216/Dashboard
+
