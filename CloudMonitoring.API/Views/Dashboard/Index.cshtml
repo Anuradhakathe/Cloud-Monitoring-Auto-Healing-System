@@ -1,0 +1,158 @@
+﻿@{
+    ViewData["Title"] = "Cloud Monitoring Dashboard";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cloud Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        h2 { color: #2c3e50; }
+        .card {
+            display: inline-block;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            background: #f4f6f7;
+            width: 250px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>☁ Cloud Monitoring Dashboard</h1>
+
+    <!-- STATUS CARDS -->
+    <div class="card" id="statusCard">
+        <h3>Server Status</h3>
+        <p id="serverStatus">Loading...</p>
+    </div>
+
+    <div class="card">
+        <h3>CPU Usage</h3>
+        <p id="cpuUsage">--</p>
+    </div>
+
+    <div class="card">
+        <h3>Memory Usage</h3>
+        <p id="memoryUsage">--</p>
+    </div>
+
+    <hr />
+
+    <!-- CHART -->
+    <h2>CPU & Memory History</h2>
+    <canvas id="usageChart" height="100"></canvas>
+
+    <hr />
+
+    <!-- INCIDENTS -->
+    <h2>Incidents</h2>
+    <table id="incidentTable">
+        <thead>
+            <tr>
+                <th>Server</th>
+                <th>Issue</th>
+                <th>Severity</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <hr />
+
+    <!-- ALERTS -->
+    <h2>Alerts</h2>
+    <table id="alertTable">
+        <thead>
+            <tr>
+                <th>Server</th>
+                <th>Message</th>
+                <th>Type</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function loadDashboard() {
+
+            // Current status
+            const statusRes = await fetch('/api/server/status');
+            const status = await statusRes.json();
+
+            document.getElementById('serverStatus').innerText = status.status;
+            document.getElementById('cpuUsage').innerText = status.cpuUsage + "%";
+            document.getElementById('memoryUsage').innerText = status.memoryUsage + "%";
+
+            // History
+            const historyRes = await fetch('/api/server/history');
+            const history = await historyRes.json();
+
+            const labels = history.map(x => new Date(x.checkedAt).toLocaleTimeString()).reverse();
+            const cpuData = history.map(x => x.cpuUsage).reverse();
+            const memData = history.map(x => x.memoryUsage).reverse();
+
+            new Chart(document.getElementById('usageChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'CPU %', data: cpuData, borderColor: 'red' },
+                        { label: 'Memory %', data: memData, borderColor: 'blue' }
+                    ]
+                }
+            });
+
+            // Incidents
+            const incidentRes = await fetch('/api/incident');
+            const incidents = await incidentRes.json();
+
+            const incidentBody = document.querySelector('#incidentTable tbody');
+            incidents.forEach(i => {
+                incidentBody.innerHTML += `
+                    <tr>
+                        <td>${i.serverName}</td>
+                        <td>${i.issue}</td>
+                        <td>${i.severity}</td>
+                        <td>${new Date(i.createdAt).toLocaleString()}</td>
+                    </tr>`;
+            });
+
+            // Alerts
+            const alertRes = await fetch('/api/alert');
+            const alerts = await alertRes.json();
+
+            const alertBody = document.querySelector('#alertTable tbody');
+            alerts.forEach(a => {
+                alertBody.innerHTML += `
+                    <tr>
+                        <td>${a.serverName}</td>
+                        <td>${a.message}</td>
+                        <td>${a.alertType}</td>
+                        <td>${new Date(a.createdAt).toLocaleString()}</td>
+                    </tr>`;
+            });
+        }
+
+        loadDashboard();
+    </script>
+
+</body>
+</html>
